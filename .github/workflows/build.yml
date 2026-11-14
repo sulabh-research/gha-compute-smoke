@@ -93,4 +93,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           HF_DATASET: sulabhkatiyar/gha-compute-smoke
           HF_OIDC_RESOURCE: datasets/sulabhkatiyar/gha-compute-smoke
+          # HF refuses Trusted-Publisher (hf_jwt_) tokens at the xet-write-token endpoint (403, seen in M4,
+          # 2026-11-14), so upload through the legacy LFS path, which accepts them.
+          HF_HUB_DISABLE_XET: "1"
         run: python -m builder.run --config "configs/${CONFIG}.yaml" --shard "$SHARD" --resume
