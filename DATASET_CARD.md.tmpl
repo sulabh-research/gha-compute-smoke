@@ -11,6 +11,11 @@ Built on GitHub Actions by the public repository
 [sulabh-research/gha-compute-smoke](https://github.com/sulabh-research/gha-compute-smoke), which holds all the code
 that produces this dataset.
 
+This dataset is the **canonical reference example** of a gha-compute workload: a deliberately tiny
+smoke test (3000 rows of `openai/gsm8k`, a trivial deterministic text transform) that proves the build,
+resume and publishing path end to end. The repository README and the operator guidelines
+(`cloud_quota/github_actions.md` in the operator's utilities repository) describe how it works.
+
 Each config of the repository (`configs/<config>.yaml`) is a separate subset in the viewer, stored under
 `data/<config>/`. Every config has its own section below with its provenance and source licences.
 Per-shard details (run attempt, source, parts) are in `_provenance/<config>/` and `_state/<config>/`.

@@ -5,6 +5,12 @@ This repository holds all the code that builds the public Hugging Face dataset
 runners via [`.github/workflows/build.yml`](.github/workflows/build.yml); the dataset card links back
 to the exact commit and workflow run that produced the data.
 
+This is the **canonical reference example** of a gha-compute workload: a deliberately tiny,
+end-to-end smoke test (3 shards of 1000 rows of `openai/gsm8k`, a trivial deterministic text transform)
+that proves the setup works. New workloads are created from the same template and follow the
+operator guidelines (`cloud_quota/github_actions.md` in the operator's utilities repository) and
+[COMPLIANCE.md](COMPLIANCE.md).
+
 ## How a build works
 
 1. The owner starts `build.yml` (`workflow_dispatch` only) with a committed config slug and a list of

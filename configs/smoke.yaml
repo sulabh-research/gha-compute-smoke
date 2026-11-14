@@ -1,0 +1,13 @@
+# Smoke config: the reference build. 3000 rows of openai/gsm8k (MIT licence) in 3 shards of 1000 rows,
+# committed as parts of 250 rows. Same content as configs/example.yaml.
+source:
+  repo_id: openai/gsm8k
+  revision: 740312add88f781978c0658806c59bc2815b9866  # pinned commit, for reproducibility
+  files:
+    - main/train-00000-of-00001.parquet
+  license: mit  # must allow redistribution; recorded in the dataset card
+text_column: question
+keep_columns: [question, answer]
+max_rows: 3000        # optional cap on rows read from the source, in file order
+num_shards: 3
+checkpoint_rows: 250  # a part is committed every checkpoint_rows rows or every 20 minutes
