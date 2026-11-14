@@ -1,0 +1,14 @@
+## Config `{{CONFIG}}`
+
+`configs/{{CONFIG}}.yaml`: {{ROWS}} source rows in {{NUM_SHARDS}} shards, stored under `data/{{CONFIG}}/`.
+
+| Latest shard to finish | |
+|---|---|
+| Repository | [{{REPOSITORY}}](https://github.com/{{REPOSITORY}}) |
+| Commit (durable link) | [{{SHA}}](https://github.com/{{REPOSITORY}}/tree/{{SHA}}) |
+| Workflow | [{{WORKFLOW_REF}}](https://github.com/{{REPOSITORY}}/blob/{{SHA}}/.github/workflows/build.yml) |
+| Run id | [{{RUN_ID}}]({{RUN_URL}}) (run pages and logs expire after at most 90 days) |
+
+| Source dataset | Revision | Licence |
+|---|---|---|
+| [{{SOURCE_REPO}}](https://huggingface.co/datasets/{{SOURCE_REPO}}) | `{{SOURCE_REVISION}}` | `{{SOURCE_LICENSE}}` |

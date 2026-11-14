@@ -1,0 +1,96 @@
+# Builds shards of sulabhkatiyar/gha-compute-smoke from a committed config. Started only by the repo owner
+# (workflow_dispatch); there is no schedule and nothing dispatches other workflows.
+name: build
+run-name: build ${{ inputs.config }} ${{ inputs.shards }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: Config slug; the job reads configs/<slug>.yaml
+        required: true
+        type: string
+      shards:
+        description: JSON list of shard indices, e.g. [0,1,2]
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.config }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.inputs.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate inputs
+        id: inputs
+        env:
+          CONFIG: ${{ inputs.config }}
+          SHARDS: ${{ inputs.shards }}
+        run: python3 -m builder.inputs dispatch
+      - name: Run-attempt guard
+        env:
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          if [ "$RUN_ATTEMPT" -gt 4 ]; then echo "::error::run_attempt $RUN_ATTEMPT > 4; refusing"; exit 1; fi
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    permissions:
+      contents: read
+      id-token: write # Trusted Publisher: exchanged for a 60-min token scoped to sulabhkatiyar/gha-compute-smoke only
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: ${{ fromJSON(needs.validate.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate inputs
+        env:
+          CONFIG: ${{ inputs.config }}
+          SHARD: ${{ matrix.shard }}
+        run: python3 -m builder.inputs shard
+      - name: Run-attempt guard
+        env:
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          if [ "$RUN_ATTEMPT" -gt 4 ]; then echo "::error::run_attempt $RUN_ATTEMPT > 4; refusing"; exit 1; fi
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      - name: Runner spec
+        run: |
+          nproc
+          free -g
+          df -h
+          ls -la /mnt
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: --no-deps -r requirements.lock
+      - name: Build shard
+        env:
+          CONFIG: ${{ inputs.config }}
+          SHARD: ${{ matrix.shard }}
+          HF_DATASET: sulabhkatiyar/gha-compute-smoke
+          HF_OIDC_RESOURCE: datasets/sulabhkatiyar/gha-compute-smoke
+        run: python -m builder.run --config "configs/${CONFIG}.yaml" --shard "$SHARD" --resume

@@ -1,0 +1,32 @@
+---
+license: mit
+pretty_name: sulabhkatiyar/gha-compute-smoke
+configs:
+{{VIEWER_CONFIGS}}
+---
+<!-- gha-compute: sulabh-research/gha-compute-smoke -->
+# sulabhkatiyar/gha-compute-smoke
+
+Built on GitHub Actions by the public repository
+[sulabh-research/gha-compute-smoke](https://github.com/sulabh-research/gha-compute-smoke), which holds all the code
+that produces this dataset.
+
+Each config of the repository (`configs/<config>.yaml`) is a separate subset in the viewer, stored under
+`data/<config>/`. Every config has its own section below with its provenance and source licences.
+Per-shard details (run attempt, source, parts) are in `_provenance/<config>/` and `_state/<config>/`.
+
+## Licences
+
+- This dataset: `mit`. Each source dataset and its licence is listed in its config's section.
+- Code that built it: `MIT` (see the repository).
+
+## Columns
+
+`row_id` (global source row index), the source columns listed in the config's `keep_columns`,
+`text_normalized` (NFKC, whitespace-collapsed, case-folded `text_column`), `n_chars`, `n_words`, `text_sha256`.
+
+## Access
+
+Access is gated (`auto`): requests are approved automatically.
+
+{{CONFIG_SECTIONS}}
