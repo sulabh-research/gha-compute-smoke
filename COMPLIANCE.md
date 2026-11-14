@@ -17,11 +17,14 @@ Check every item before each change and each build.
 
 ## The workflow
 `gha.py` lints every file in `.github/workflows/` before `init-repo`, `git push` and `dispatch`, and
-refuses if the trigger, permissions, `uses:` pins or `max-parallel` items below do not hold.
+refuses if the trigger, permissions, secret, `uses:` pins or `max-parallel` items below do not hold.
 
 - [ ] Trigger is `workflow_dispatch` only: no `schedule`, `push`, `pull_request*` or `workflow_run`, and
       no step dispatches workflows.
-- [ ] Top-level `permissions: contents: read`; `id-token: write` only on the build job.
+- [ ] `permissions: contents: read` at the top and on every job; no `id-token: write`.
+- [ ] The only secret is `HF_TOKEN_GHA`, a fine-grained HF token that can write only to `sulabhkatiyar/gha-compute-smoke`. It
+      appears once, as `HF_TOKEN` in the `env:` of the build step; never in job or workflow `env:`, `run:`,
+      `with:`, `secrets: inherit` or `toJSON(secrets)`.
 - [ ] Only official `actions/*` actions, pinned by full commit SHA; `persist-credentials: false`.
 - [ ] Inputs reach scripts only through `env:` and are re-validated first; never `${{ inputs.* }}` in `run:`.
 - [ ] Dependencies installed with `--require-hashes` from `requirements.lock`.

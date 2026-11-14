@@ -48,9 +48,6 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 340
-    permissions:
-      contents: read
-      id-token: write # Trusted Publisher: exchanged for a 60-min token scoped to sulabhkatiyar/gha-compute-smoke only
     strategy:
       fail-fast: false
       max-parallel: 8
@@ -92,5 +89,6 @@ jobs:
           CONFIG: ${{ inputs.config }}
           SHARD: ${{ matrix.shard }}
           HF_DATASET: sulabhkatiyar/gha-compute-smoke
-          HF_OIDC_RESOURCE: datasets/sulabhkatiyar/gha-compute-smoke
+          # Fine-grained HF token that can write only to sulabhkatiyar/gha-compute-smoke (gha.py set-secret). Only this step sees it.
+          HF_TOKEN: ${{ secrets.HF_TOKEN_GHA }}
         run: python -m builder.run --config "configs/${CONFIG}.yaml" --shard "$SHARD" --resume

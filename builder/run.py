@@ -2,8 +2,9 @@
 
   python -m builder.run --config configs/<slug>.yaml --shard K [--resume] [--local-dir DIR]
 
-Writes to the HF dataset named by $HF_DATASET (authenticated by the Trusted Publisher token that
-huggingface_hub obtains from $HF_OIDC_RESOURCE), or to DIR for a local dry run:
+Writes to the HF dataset named by $HF_DATASET with the fine-grained token in $HF_TOKEN (the Actions
+secret HF_TOKEN_GHA, which can write only to that dataset; source reads stay anonymous), or to DIR for a
+local dry run:
   data/<slug>/shard-0000K/part-XXXX.parquet   one part per checkpoint
   _state/<slug>/shard-0000K.json              resume state, committed atomically with each part
   _provenance/<slug>/shard-0000K.json         repo, commit SHA, workflow, run id/attempt, source
@@ -215,13 +216,12 @@ class LocalSink:
 
 
 class HubSink:
-    """The HF dataset. HfApi() resolves its token per request, so with HF_OIDC_RESOURCE set the library
-    re-exchanges the GitHub OIDC token for a fresh 60-min repo-scoped token shortly before expiry."""
+    """The HF dataset, written with an explicit token (state reads and commits alike)."""
 
-    def __init__(self, repo_id, api=None):
+    def __init__(self, repo_id, api=None, token=None):
         if api is None:
             from huggingface_hub import HfApi
-            api = HfApi()
+            api = HfApi(token=token)
         self.api, self.repo_id = api, repo_id
 
     def _download_text(self, path, revision=None):
@@ -404,7 +404,11 @@ def main(argv=None):
     if args.local_dir:
         sink = LocalSink(args.local_dir)
     elif os.environ.get("HF_DATASET"):
-        sink = HubSink(os.environ["HF_DATASET"])
+        token = os.environ.get("HF_TOKEN", "").strip()
+        if not token:
+            raise SystemExit("HF_TOKEN is empty: the repo needs the Actions secret HF_TOKEN_GHA (the owner runs "
+                             "gha.py set-secret), passed as HF_TOKEN in the build step's env")
+        sink = HubSink(os.environ["HF_DATASET"], token=token)
         sink.log_identity()
     else:
         parser.error("set HF_DATASET (workflow) or pass --local-dir")

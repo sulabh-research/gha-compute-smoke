@@ -327,10 +327,10 @@ def test_inputs_main_writes_github_output(tmp_path, monkeypatch):
 def test_hub_log_identity_redacts_tokens_and_is_non_fatal(capsys):
     class WhoamiApi:
         def whoami(self):
-            return {"name": "[OIDC]", "type": "user", "auth": {"type": "access_token", "accessToken": {
+            return {"name": "owner", "type": "user", "auth": {"type": "access_token", "accessToken": {
                 "role": "fineGrained", "displayName": "hf_" + "a" * 34,
                 "fineGrained": {"scoped": [{"entity": {"name": "o/d", "type": "dataset"},
-                                            "permissions": ["repo.content.write"]}], "global": []}}}}
+                                            "permissions": ["repo.content.read", "repo.write"]}], "global": []}}}}
 
         def auth_check(self, repo_id, repo_type=None, write=False):
             if write:
@@ -338,7 +338,7 @@ def test_hub_log_identity_redacts_tokens_and_is_non_fatal(capsys):
 
     run.HubSink("o/d", WhoamiApi()).log_identity()
     out = capsys.readouterr().out
-    assert '"name": "[OIDC]"' in out and "repo.content.write" in out and "hf_aaaa" not in out
+    assert '"name": "owner"' in out and "repo.write" in out and "hf_aaaa" not in out
     assert "read access to o/d: ok" in out and "write access to o/d: PermissionError" in out
 
     class BrokenApi:
@@ -346,3 +346,14 @@ def test_hub_log_identity_redacts_tokens_and_is_non_fatal(capsys):
             raise RuntimeError("down")
     run.HubSink("o/d", BrokenApi()).log_identity()  # never raises
     assert "whoami failed (RuntimeError)" in capsys.readouterr().out
+
+
+def test_hub_sink_needs_hf_token_and_uses_it(monkeypatch):
+    monkeypatch.setenv("HF_DATASET", "o/d")
+    monkeypatch.setenv("HF_TOKEN", "  ")
+    with pytest.raises(SystemExit, match="HF_TOKEN is empty.*HF_TOKEN_GHA"):
+        run.main(["--config", str(ROOT / "configs" / "example.yaml"), "--shard", "0"])
+    import huggingface_hub
+    seen = []
+    monkeypatch.setattr(huggingface_hub, "HfApi", lambda token=None: seen.append(token) or object())
+    assert run.HubSink("o/d", token="hf_" + "b" * 34).repo_id == "o/d" and seen == ["hf_" + "b" * 34]

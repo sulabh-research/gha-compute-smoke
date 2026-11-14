@@ -18,9 +18,9 @@ operator guidelines (`cloud_quota/github_actions.md` in the operator's utilities
 2. Inputs are re-validated, then each shard runs as one matrix job (at most 8 in parallel).
 3. `builder/run.py` streams its slice of the pinned source dataset, applies a deterministic transform,
    and commits parquet parts with a resume state. A rerun skips parts that are already committed.
-4. Uploads use a Hugging Face [Trusted Publisher](https://huggingface.co/docs/hub/trusted-publishers):
-   the job's GitHub OIDC token is exchanged for a 60-minute token that can write only to
-   `sulabhkatiyar/gha-compute-smoke`. The repository stores no secrets.
+4. Uploads use a [fine-grained Hugging Face token](https://huggingface.co/docs/hub/security-tokens) that can
+   read and write only `sulabhkatiyar/gha-compute-smoke`. It is the repository's only secret (`HF_TOKEN_GHA`), and only the
+   build step receives it.
 
 ## Run it locally
 
