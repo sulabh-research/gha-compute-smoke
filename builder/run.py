@@ -234,6 +234,29 @@ class HubSink:
             return None
         return Path(local).read_text(encoding="utf-8")
 
+    def log_identity(self):
+        """Log who the uploads run as (user name, token role and scopes; never the token itself). Non-fatal."""
+        try:
+            info = self.api.whoami()
+        except Exception as exc:  # diagnostics only
+            log(f"upload identity: whoami failed ({type(exc).__name__})")
+            return
+        auth = info.get("auth") or {}
+        tok = auth.get("accessToken") or {}
+        scopes = [(s.get("entity", {}).get("name"), s.get("entity", {}).get("type"), s.get("permissions"))
+                  for s in (tok.get("fineGrained") or {}).get("scoped") or []]
+        summary = {"name": info.get("name"), "type": info.get("type"), "auth_type": auth.get("type"),
+                   "role": tok.get("role"), "scoped": scopes,
+                   "global": (tok.get("fineGrained") or {}).get("global")}
+        log("upload identity: " + re.sub(r"hf_[A-Za-z0-9_]+", "hf_***", json.dumps(summary, default=str)))
+        for write in (False, True):
+            try:
+                self.api.auth_check(self.repo_id, repo_type="dataset", write=write)
+                result = "ok"
+            except Exception as exc:  # diagnostics only
+                result = type(exc).__name__
+            log(f"upload identity: {'write' if write else 'read'} access to {self.repo_id}: {result}")
+
     def read_json(self, path):
         text = self._download_text(path)
         return None if text is None else json.loads(text)
@@ -382,6 +405,7 @@ def main(argv=None):
         sink = LocalSink(args.local_dir)
     elif os.environ.get("HF_DATASET"):
         sink = HubSink(os.environ["HF_DATASET"])
+        sink.log_identity()
     else:
         parser.error("set HF_DATASET (workflow) or pass --local-dir")
     source = hf_source(cfg)

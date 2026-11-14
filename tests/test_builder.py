@@ -322,3 +322,27 @@ def test_inputs_main_writes_github_output(tmp_path, monkeypatch):
     assert out.read_text() == "shards=[0,1]\n"
     assert inputs.main(["dispatch"], {"CONFIG": "missing", "SHARDS": "[0]", "GITHUB_OUTPUT": str(out)}) == 1
     assert inputs.main(["shard"], {"CONFIG": "example", "SHARD": "x"}) == 1
+
+
+def test_hub_log_identity_redacts_tokens_and_is_non_fatal(capsys):
+    class WhoamiApi:
+        def whoami(self):
+            return {"name": "[OIDC]", "type": "user", "auth": {"type": "access_token", "accessToken": {
+                "role": "fineGrained", "displayName": "hf_" + "a" * 34,
+                "fineGrained": {"scoped": [{"entity": {"name": "o/d", "type": "dataset"},
+                                            "permissions": ["repo.content.write"]}], "global": []}}}}
+
+        def auth_check(self, repo_id, repo_type=None, write=False):
+            if write:
+                raise PermissionError("403 Forbidden")
+
+    run.HubSink("o/d", WhoamiApi()).log_identity()
+    out = capsys.readouterr().out
+    assert '"name": "[OIDC]"' in out and "repo.content.write" in out and "hf_aaaa" not in out
+    assert "read access to o/d: ok" in out and "write access to o/d: PermissionError" in out
+
+    class BrokenApi:
+        def whoami(self):
+            raise RuntimeError("down")
+    run.HubSink("o/d", BrokenApi()).log_identity()  # never raises
+    assert "whoami failed (RuntimeError)" in capsys.readouterr().out
